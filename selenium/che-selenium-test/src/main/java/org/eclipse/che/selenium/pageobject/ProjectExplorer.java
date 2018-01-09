@@ -126,6 +126,8 @@ public class ProjectExplorer {
     String REFRESH_CONTEXT_MENU_ID = "gwt-debug-contextMenu/refreshPathAction";
     String PROJECT_EXPLORER_TAB_IN_THE_LEFT_PANEL =
         "//div[@id='gwt-debug-navPanel']//div[@id='gwt-debug-partButton-Projects']";
+    String SELECT_TARGET_MACHINE_PANEL = "//div[@class='gwt-PopupPanel']";
+    String MACHINE_NAME_IN_TARGET_LIST = SELECT_TARGET_MACHINE_PANEL + "//option[contains(.,'%s')]";
   }
 
   public interface FolderTypes {
@@ -818,8 +820,14 @@ public class ProjectExplorer {
 
   public void invokeCommandWithContextMenu(
       String commandsGoal, String pathToItem, String commandName, String machineName) {
-    selectItem(pathToItem);
-    openContextMenuByPathSelectedItem(pathToItem);
+    try {
+      openContextMenuByPathSelectedItem(pathToItem);
+    } catch (NoSuchElementException e) {
+      clickOnRefreshTreeButton();
+      openContextMenuByPathSelectedItem(
+          pathToItem); // there context menu may not be opened from the first try
+    }
+
     clickOnItemInContextMenu(COMMANDS);
     clickOnItemInContextMenu(commandsGoal);
 
@@ -828,15 +836,15 @@ public class ProjectExplorer {
             visibilityOfElementLocated(
                 By.xpath(String.format("//tr[@id[contains(.,'%s')]]", commandName))))
         .click();
-    loader.waitOnClosed();
+
+    new WebDriverWait(seleniumWebDriver, ELEMENT_TIMEOUT_SEC)
+        .until(visibilityOfElementLocated(By.xpath(Locators.SELECT_TARGET_MACHINE_PANEL)));
+
     actionsFactory
         .createAction(seleniumWebDriver)
         .doubleClick(
             seleniumWebDriver.findElement(
-                By.xpath(
-                    String.format(
-                        "//select[@class = 'gwt-ListBox']//option[contains(.,'%s')]",
-                        machineName))))
+                By.xpath(String.format(Locators.MACHINE_NAME_IN_TARGET_LIST, machineName))))
         .perform();
   }
 
